@@ -12,7 +12,7 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 
 // compute_dotplot_data
 DataFrame compute_dotplot_data(String r_s1, String r_s2, int wsize, int step, int n_mismatches);
-RcppExport SEXP _dotplot_compute_dotplot_data(SEXP r_s1SEXP, SEXP r_s2SEXP, SEXP wsizeSEXP, SEXP stepSEXP, SEXP n_mismatchesSEXP) {
+RcppExport SEXP _seqdotplot_compute_dotplot_data(SEXP r_s1SEXP, SEXP r_s2SEXP, SEXP wsizeSEXP, SEXP stepSEXP, SEXP n_mismatchesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -27,11 +27,11 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_dotplot_compute_dotplot_data", (DL_FUNC) &_dotplot_compute_dotplot_data, 5},
+    {"_seqdotplot_compute_dotplot_data", (DL_FUNC) &_seqdotplot_compute_dotplot_data, 5},
     {NULL, NULL, 0}
 };
 
-RcppExport void R_init_dotplot(DllInfo *dll) {
+RcppExport void R_init_seqdotplot(DllInfo *dll) {
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
 }
