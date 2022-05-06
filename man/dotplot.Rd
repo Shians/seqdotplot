@@ -4,7 +4,7 @@
 \alias{dotplot}
 \title{Title}
 \usage{
-dotplot(s1, s2, width = 3, step = 1)
+dotplot(s1, s2, width = 10, step = 1, n_mismatches = 0, geom = "auto")
 }
 \arguments{
 \item{step}{}
