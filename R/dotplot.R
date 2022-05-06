@@ -9,7 +9,7 @@
 #' @export
 #'
 #' @examples
-dotplot <- function(s1, s2, width = 10, step = 1, n_mismatches = 0, geom = "auto") {
+seqdotplot <- function(s1, s2, width = 10, step = 1, n_mismatches = 0, geom = "auto") {
     dotplot_data <- compute_dotplot_data(s1, s2, width, step, n_mismatches)
 
     if (geom == "auto") {
