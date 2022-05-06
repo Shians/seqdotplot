@@ -9,8 +9,45 @@
 #' @export
 #'
 #' @examples
-seqdotplot <- function(s1, s2, width = 10, step = 1, n_mismatches = 0, geom = "auto") {
-    dotplot_data <- compute_dotplot_data(s1, s2, width, step, n_mismatches)
+seqdotplot <- function(s1, s2, width = 10, step = 1, n_mismatches = 0, geom = "auto", threads = 1) {
+    chunk_width <- 500
+    str_break <- function(str) {
+        width <- chunk_width
+        substring(
+            str,
+            seq(1, nchar(str), width),
+            seq(width, nchar(str) + width - 1, width)
+        )
+    }
+
+    if (nchar(s1) <= chunk_width || threads == 1) {
+        dotplot_data <- compute_dotplot_data(s1, s2, width, step, n_mismatches)
+    } else {
+        s1_chunked <- str_break(s1)
+        compute_chunk <- function(s1, s2, width, step, n_mismatches) {
+            compute_dotplot_data(s1, s2, width, step, n_mismatches)
+        }
+        dotplot_data <- parallel::mclapply(
+            s1_chunked,
+            compute_chunk,
+            # args
+            s2 = s2,
+            width = width,
+            step = step,
+            n_mismatches = n_mismatches,
+            mc.cores = threads
+        )
+        dotplot_data <- map2(
+            dotplot_data,
+            seq_along(dotplot_data),
+            function(df, i) {
+                df$x <- df$x + (i-1) * chunk_width
+                df
+            }
+        )
+
+        dotplot_data <- bind_rows(dotplot_data)
+    }
 
     if (geom == "auto") {
         if (nchar(s1) > 2000 || nchar(s2) > 2000) {

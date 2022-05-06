@@ -40,10 +40,12 @@ DataFrame compute_dotplot_data(String r_s1, String r_s2, int wsize, int step, in
     string_view s2_v(s2);
 
     for (auto i = 0; i < ncol; i += step) {
-        auto sub_v1 = s1_v.substr(i, wsize);
         R_CheckUserInterrupt();
+        auto sub_v1 = s1_v.substr(i, wsize);
+
         for (auto j = 0; j < nrow; j += step) {
             auto sub_v2 = s2_v.substr(j, wsize);
+
             if (wsize - matched_chars(sub_v1, sub_v2) <= n_mismatches) {
                 x_coord.push_back(i);
                 y_coord.push_back(j);
