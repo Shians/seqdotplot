@@ -9,7 +9,7 @@
 #' @export
 #'
 #' @examples
-seqdotplot <- function(s1, s2, width = 10, step = 1, n_mismatches = 0, geom = "auto", threads = 1) {
+seqdotplot <- function(s1, s2, width = 10, step = 1, n_mismatches = 0, geom = "auto", threads = getOption("mc.cores", 1L)) {
     s1 <- as.character(s1)
     s2 <- as.character(s2)
 
