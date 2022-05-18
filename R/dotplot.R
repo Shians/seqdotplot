@@ -13,7 +13,9 @@ seqdotplot <- function(s1, s2, width = 10, step = 1, n_mismatches = 0, geom = "a
     s1 <- as.character(s1)
     s2 <- as.character(s2)
 
-    chunk_width <- 500
+    s1_longer <- nchar(s1) > nchar(s2)
+
+    chunk_width <- 1000
     str_break <- function(str) {
         width <- chunk_width
         substring(
@@ -26,30 +28,66 @@ seqdotplot <- function(s1, s2, width = 10, step = 1, n_mismatches = 0, geom = "a
     if (nchar(s1) <= chunk_width || threads == 1) {
         dotplot_data <- compute_dotplot_data(s1, s2, width, step, n_mismatches)
     } else {
-        s1_chunked <- str_break(s1)
         compute_chunk <- function(s1, s2, width, step, n_mismatches) {
             compute_dotplot_data(s1, s2, width, step, n_mismatches)
         }
-        dotplot_data <- parallel::mclapply(
-            s1_chunked,
+
+        chunked_str <- str_break(if (s1_longer) s1 else s2)
+
+        dotplot_data_fwd <- parallel::mclapply(
+            chunked_str,
             compute_chunk,
             # args
-            s2 = s2,
+            s2 = if (s1_longer) s2 else s1,
             width = width,
             step = step,
             n_mismatches = n_mismatches,
             mc.cores = threads
         )
-        dotplot_data <- map2(
-            dotplot_data,
-            seq_along(dotplot_data),
+
+        dotplot_data_fwd <- map2(
+            dotplot_data_fwd,
+            seq_along(dotplot_data_fwd),
             function(df, i) {
                 df$x <- df$x + (i-1) * chunk_width
                 df
             }
         )
 
-        dotplot_data <- bind_rows(dotplot_data)
+        dotplot_data_fwd <- bind_rows(dotplot_data_fwd)
+
+        s2 <- s2 %>%
+            Biostrings::DNAString() %>%
+            Biostrings::reverseComplement() %>%
+            as.character
+
+        chunked_str <- str_break(if (s1_longer) s1 else s2)
+
+        dotplot_data_rev <- parallel::mclapply(
+            chunked_str,
+            compute_chunk,
+            # args
+            s2 = if (s1_longer) s2 else s1,
+            width = width,
+            step = step,
+            n_mismatches = n_mismatches,
+            mc.cores = threads
+        )
+
+        dotplot_data_rev <- map2(
+            dotplot_data_rev,
+            seq_along(dotplot_data_rev),
+            function(df, i) {
+                df$x <- df$x + (i-1) * chunk_width
+                df
+            }
+        )
+
+        offset <- if (s1_longer) nchar(s1) else nchar(s2)
+        dotplot_data_rev <- bind_rows(dotplot_data_rev) %>%
+            mutate(x = offset - x)
+
+        dotplot_data <- bind_rows(dotplot_data_fwd, dotplot_data_rev)
     }
 
     if (geom == "auto") {
