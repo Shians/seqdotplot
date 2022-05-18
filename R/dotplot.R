@@ -54,7 +54,8 @@ seqdotplot <- function(s1, s2, width = 10, step = 1, n_mismatches = 0, geom = "a
             }
         )
 
-        dotplot_data_fwd <- bind_rows(dotplot_data_fwd)
+        dotplot_data_fwd <- bind_rows(dotplot_data_fwd) %>%
+            mutate(orientation = "forward")
 
         s2 <- s2 %>%
             Biostrings::DNAString() %>%
@@ -85,9 +86,11 @@ seqdotplot <- function(s1, s2, width = 10, step = 1, n_mismatches = 0, geom = "a
 
         offset <- if (s1_longer) nchar(s1) else nchar(s2)
         dotplot_data_rev <- bind_rows(dotplot_data_rev) %>%
-            mutate(x = offset - x)
+            mutate(x = offset - x) %>%
+            mutate(orientation = "reverse")
 
-        dotplot_data <- bind_rows(dotplot_data_fwd, dotplot_data_rev)
+        dotplot_data <- bind_rows(dotplot_data_fwd, dotplot_data_rev) %>%
+            arrange(x)
     }
 
     if (geom == "auto") {
@@ -98,7 +101,7 @@ seqdotplot <- function(s1, s2, width = 10, step = 1, n_mismatches = 0, geom = "a
         }
     }
 
-    p <- ggplot(dotplot_data, aes(x = x, y = y))
+    p <- ggplot(dotplot_data, aes(x = x, y = y, col = orientation))
 
     if (geom == "point") {
         p <- p + geom_point(shape = 15, size = 0.1)
@@ -109,6 +112,8 @@ seqdotplot <- function(s1, s2, width = 10, step = 1, n_mismatches = 0, geom = "a
     p + scale_x_continuous(expand = c(0, 0), position = "top") +
         scale_y_reverse(expand = c(0, 0)) +
         theme_classic() +
+        scale_colour_manual(values = c("foward" = "black", "reverse" = "red")) +
+        guides(colour = guide_legend(override.aes = list(size=3))) +
         theme(panel.border = element_rect(colour = "black", fill=NA)) +
         xlab("Sequence 1") +
         ylab("Sequence 2")
