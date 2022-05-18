@@ -10,6 +10,9 @@
 #'
 #' @examples
 seqdotplot <- function(s1, s2, width = 10, step = 1, n_mismatches = 0, geom = "auto", threads = 1) {
+    s1 <- as.character(s1)
+    s2 <- as.character(s2)
+
     chunk_width <- 500
     str_break <- function(str) {
         width <- chunk_width

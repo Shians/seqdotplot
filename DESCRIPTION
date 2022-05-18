@@ -1,12 +1,16 @@
 Package: seqdotplot
 Type: Package
-Title: What the Package Does (Title Case)
-Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
-License: What license is it under?
+Title: Create dotplots of genomic sequences to visualise similarity.
+Version: 0.1.1
+Author: Shian Su <su.s@wehi.edu.au>
+Maintainer: Shian Su <su.s@wehi.edu.au>
+Description: This package produces sequence similarity dotplots for inspecting
+    various properties of sequences or between sequences. It uses an efficient
+    C++ implementation for calculating the similarity matrix and ggplot for
+    producing the output. This implementation incidentally uses a sparse 
+    representation of the similarity matrix as required by ggplot, making it
+    much more scalable than dense matrix implementations.
+License: Apache License (>= 2)
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.1.2
