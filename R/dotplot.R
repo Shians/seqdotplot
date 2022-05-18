@@ -24,10 +24,18 @@ seqdotplot <- function(
     stopifnot(n_mismatches < width)
     geom <- match.arg(geom)
 
+    xlab <- deparse(substitute(s1))
+    ylab <- deparse(substitute(s2))
+
     s1 <- as.character(s1)
     s2 <- as.character(s2)
 
     s1_longer <- nchar(s1) > nchar(s2)
+    if (!s1_longer) {
+        temp <- xlab
+        xlab <- ylab
+        ylab <- temp
+    }
 
     chunk_width <- 1000
     str_break <- function(str) {
@@ -129,6 +137,6 @@ seqdotplot <- function(
         scale_colour_manual(values = c("forward" = "black", "reverse" = "red")) +
         guides(colour = guide_legend(override.aes = list(size=3))) +
         theme(panel.border = element_rect(colour = "black", fill=NA)) +
-        xlab("Sequence 1") +
-        ylab("Sequence 2")
+        xlab(xlab) +
+        ylab(ylab)
 }
