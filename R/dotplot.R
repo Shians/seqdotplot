@@ -1,15 +1,29 @@
-#' Title
+#' Draw sequence dotplot
 #'
-#' @param s1
-#' @param s2
-#' @param width
-#' @param step
+#' Draws a sequence dotplot with forward and reverse complement matching. The
+#' longer sequence will be represented on the X-axis.
 #'
-#' @return
+#' @param s1 the first sequence.
+#' @param s2 the second sequence.
+#' @param width the width of the window for comparing matches.
+#' @param step the step size to move the window forward.
+#' @param n_mismatches the allowed number of mismatches within window.
+#' @param geom the geom used to draw the dots.
+#' @param threads the number of threads to use.
+#'
+#' @return ggplot object containing the sequence dotplot
 #' @export
 #'
 #' @examples
-seqdotplot <- function(s1, s2, width = 10, step = 1, n_mismatches = 0, geom = "auto", threads = getOption("mc.cores", 1L)) {
+seqdotplot <- function(
+    s1, s2,
+    width = 10, step = 1, n_mismatches = 0,
+    geom = c("auto", "point", "tile"),
+    threads = getOption("mc.cores", 1L)
+) {
+    stopifnot(n_mismatches < width)
+    geom <- match.arg(geom)
+
     s1 <- as.character(s1)
     s2 <- as.character(s2)
 
@@ -112,7 +126,7 @@ seqdotplot <- function(s1, s2, width = 10, step = 1, n_mismatches = 0, geom = "a
     p + scale_x_continuous(expand = c(0, 0), position = "top") +
         scale_y_reverse(expand = c(0, 0)) +
         theme_classic() +
-        scale_colour_manual(values = c("foward" = "black", "reverse" = "red")) +
+        scale_colour_manual(values = c("forward" = "black", "reverse" = "red")) +
         guides(colour = guide_legend(override.aes = list(size=3))) +
         theme(panel.border = element_rect(colour = "black", fill=NA)) +
         xlab("Sequence 1") +
