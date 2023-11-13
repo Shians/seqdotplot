@@ -9,9 +9,11 @@
 #' @param step the step size to move the window forward.
 #' @param n_mismatches the allowed number of mismatches within window.
 #' @param geom the geom used to draw the dots.
+#' @param longer_as_x if TRUE, the longer sequence will be represented on the
+#'  x-axis. If FALSE, the first sequence will be represented on the x-axis.
 #' @param threads the number of threads to use.
 #'
-#' @return ggplot object containing the sequence dotplot
+#' @return ggplot2::ggplot object containing the sequence dotplot
 #' @export
 #'
 #' @examples
@@ -19,6 +21,8 @@ seqdotplot <- function(
     s1, s2,
     width = 10, step = 1, n_mismatches = 0,
     geom = c("auto", "point", "tile"),
+    longer_as_x = FALSE,
+    match_reverse = TRUE,
     threads = getOption("mc.cores", 1L)
 ) {
     stopifnot(n_mismatches < width)
@@ -31,7 +35,7 @@ seqdotplot <- function(
     s2 <- as.character(s2)
 
     s1_longer <- nchar(s1) > nchar(s2)
-    if (!s1_longer) {
+    if (longer_as_x && !s1_longer) {
         temp <- xlab
         xlab <- ylab
         ylab <- temp
@@ -47,15 +51,31 @@ seqdotplot <- function(
         )
     }
 
-    if (nchar(s1) <= chunk_width || threads == 1) {
-        dotplot_data <- compute_dotplot_data(s1, s2, width, step, n_mismatches)
+    if (threads == 1 || (nchar(s1) <= chunk_width && nchar(s2) <= chunk_width)) {
+        # if single threaded or both strings are short
+        dotplot_data_fwd <- compute_dotplot_data(s1, s2, width, step, n_mismatches)
+        if (match_reverse) {
+            s2 <- s2 |>
+                Biostrings::DNAString() |>
+                Biostrings::reverseComplement() |>
+                as.character()
+            dotplot_data_rev <- compute_dotplot_data(s1, s2, width, step, n_mismatches)
+            dotplot_data <- dplyr::bind_rows(dotplot_data_fwd, dotplot_data_rev) |>
+                dplyr::arrange(.data$x)
+        } else {
+            dotplot_data <- dotplot_data_fwd
+        }
+        
     } else {
+        # otherwise, chunk the longer string and compute dotplot data in parallel
         compute_chunk <- function(s1, s2, width, step, n_mismatches) {
             compute_dotplot_data(s1, s2, width, step, n_mismatches)
         }
 
+        # chunk along the longer string
         chunked_str <- str_break(if (s1_longer) s1 else s2)
 
+        # compute dotplot data for forward matches
         dotplot_data_fwd <- parallel::mclapply(
             chunked_str,
             compute_chunk,
@@ -67,7 +87,7 @@ seqdotplot <- function(
             mc.cores = threads
         )
 
-        dotplot_data_fwd <- map2(
+        dotplot_data_fwd <- purrr::map2(
             dotplot_data_fwd,
             seq_along(dotplot_data_fwd),
             function(df, i) {
@@ -76,43 +96,49 @@ seqdotplot <- function(
             }
         )
 
-        dotplot_data_fwd <- bind_rows(dotplot_data_fwd) %>%
-            mutate(orientation = "forward")
+        dotplot_data_fwd <- dplyr::bind_rows(dotplot_data_fwd) |>
+            dplyr::mutate(orientation = "forward")
 
-        s2 <- s2 %>%
-            Biostrings::DNAString() %>%
-            Biostrings::reverseComplement() %>%
-            as.character
+        if (match_reverse) {
+            # compute dotplot data for reverse complement matches
+            s2 <- s2 |>
+                Biostrings::DNAString() |>
+                Biostrings::reverseComplement() |>
+                as.character()
 
-        chunked_str <- str_break(if (s1_longer) s1 else s2)
+            # chunk along the longer string
+            chunked_str <- str_break(if (s1_longer) s1 else s2)
+            
+            dotplot_data_rev <- parallel::mclapply(
+                chunked_str,
+                compute_chunk,
+                # args
+                s2 = if (s1_longer) s2 else s1,
+                width = width,
+                step = step,
+                n_mismatches = n_mismatches,
+                mc.cores = threads
+            )
 
-        dotplot_data_rev <- parallel::mclapply(
-            chunked_str,
-            compute_chunk,
-            # args
-            s2 = if (s1_longer) s2 else s1,
-            width = width,
-            step = step,
-            n_mismatches = n_mismatches,
-            mc.cores = threads
-        )
+            dotplot_data_rev <- purrr::map2(
+                dotplot_data_rev,
+                seq_along(dotplot_data_rev),
+                function(df, i) {
+                    df$x <- df$x + (i-1) * chunk_width
+                    df
+                }
+            )
 
-        dotplot_data_rev <- map2(
-            dotplot_data_rev,
-            seq_along(dotplot_data_rev),
-            function(df, i) {
-                df$x <- df$x + (i-1) * chunk_width
-                df
-            }
-        )
+            offset <- if (s1_longer) nchar(s1) else nchar(s2)
+            dotplot_data_rev <- dplyr::bind_rows(dotplot_data_rev) |>
+                dplyr::mutate(x = offset - x) |>
+                dplyr::mutate(orientation = "reverse")
 
-        offset <- if (s1_longer) nchar(s1) else nchar(s2)
-        dotplot_data_rev <- bind_rows(dotplot_data_rev) %>%
-            mutate(x = offset - x) %>%
-            mutate(orientation = "reverse")
-
-        dotplot_data <- bind_rows(dotplot_data_fwd, dotplot_data_rev) %>%
-            arrange(x)
+            dotplot_data <- dplyr::bind_rows(dotplot_data_fwd, dotplot_data_rev) |>
+            dplyr::arrange(.data$x)
+        } else {
+            dotplot_data <- dotplot_data_fwd
+        }
     }
 
     if (geom == "auto") {
@@ -123,20 +149,30 @@ seqdotplot <- function(
         }
     }
 
-    p <- ggplot(dotplot_data, aes(x = x, y = y, col = orientation))
+    p <- ggplot2::ggplot(dotplot_data, ggplot2::aes(x = .data$x, y = .data$y, col = orientation))
 
     if (geom == "point") {
-        p <- p + geom_point(shape = 15, size = 0.1)
+        p <- p + ggplot2::geom_point(shape = 15, size = 0.1)
     } else if (geom == "tile") {
-        p <- p + geom_tile()
+        p <- p + ggplot2::geom_tile()
     }
 
-    p + scale_x_continuous(expand = c(0, 0), position = "top") +
-        scale_y_reverse(expand = c(0, 0)) +
-        theme_classic() +
-        scale_colour_manual(values = c("forward" = "black", "reverse" = "red")) +
-        guides(colour = guide_legend(override.aes = list(size=3))) +
-        theme(panel.border = element_rect(colour = "black", fill=NA)) +
-        xlab(xlab) +
-        ylab(ylab)
+    if (match_reverse) {
+        p + ggplot2::scale_x_continuous(expand = c(0, 0), position = "top") +
+            ggplot2::scale_y_reverse(expand = c(0, 0)) +
+            ggplot2::theme_classic() +
+            ggplot2::scale_colour_manual(values = c("forward" = "black", "reverse" = "red")) +
+            ggplot2::guides(colour = ggplot2::guide_legend(override.aes = list(size=3))) +
+            ggplot2::theme(panel.border = ggplot2::element_rect(colour = "black", fill=NA)) +
+            xlab(xlab) +
+            ylab(ylab
+    } else {
+        p + ggplot2::scale_x_continuous(expand = c(0, 0), position = "top") +
+            ggplot2::scale_y_reverse(expand = c(0, 0)) +
+            ggplot2::theme_classic() +
+            ggplot2::guides(colour = ggplot2::guide_legend(override.aes = list(size=3))) +
+            ggplot2::theme(panel.border = ggplot2::element_rect(colour = "black", fill=NA)) +
+            xlab(xlab) +
+            ylab(ylab
+    }
 }
