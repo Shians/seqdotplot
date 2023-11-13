@@ -165,7 +165,7 @@ seqdotplot <- function(
             ggplot2::guides(colour = ggplot2::guide_legend(override.aes = list(size=3))) +
             ggplot2::theme(panel.border = ggplot2::element_rect(colour = "black", fill=NA)) +
             xlab(xlab) +
-            ylab(ylab
+            ylab(ylab)
     } else {
         p + ggplot2::scale_x_continuous(expand = c(0, 0), position = "top") +
             ggplot2::scale_y_reverse(expand = c(0, 0)) +
@@ -173,6 +173,6 @@ seqdotplot <- function(
             ggplot2::guides(colour = ggplot2::guide_legend(override.aes = list(size=3))) +
             ggplot2::theme(panel.border = ggplot2::element_rect(colour = "black", fill=NA)) +
             xlab(xlab) +
-            ylab(ylab
+            ylab(ylab)
     }
 }
