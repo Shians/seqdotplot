@@ -65,7 +65,7 @@ seqdotplot <- function(
         } else {
             dotplot_data <- dotplot_data_fwd
         }
-        
+
     } else {
         # otherwise, chunk the longer string and compute dotplot data in parallel
         compute_chunk <- function(s1, s2, width, step, n_mismatches) {
@@ -108,7 +108,7 @@ seqdotplot <- function(
 
             # chunk along the longer string
             chunked_str <- str_break(if (s1_longer) s1 else s2)
-            
+
             dotplot_data_rev <- parallel::mclapply(
                 chunked_str,
                 compute_chunk,
@@ -164,15 +164,15 @@ seqdotplot <- function(
             ggplot2::scale_colour_manual(values = c("forward" = "black", "reverse" = "red")) +
             ggplot2::guides(colour = ggplot2::guide_legend(override.aes = list(size=3))) +
             ggplot2::theme(panel.border = ggplot2::element_rect(colour = "black", fill=NA)) +
-            xlab(xlab) +
-            ylab(ylab)
+            ggplot2::xlab(xlab) +
+            ggplot2::ylab(ylab)
     } else {
         p + ggplot2::scale_x_continuous(expand = c(0, 0), position = "top") +
             ggplot2::scale_y_reverse(expand = c(0, 0)) +
             ggplot2::theme_classic() +
             ggplot2::guides(colour = ggplot2::guide_legend(override.aes = list(size=3))) +
             ggplot2::theme(panel.border = ggplot2::element_rect(colour = "black", fill=NA)) +
-            xlab(xlab) +
-            ylab(ylab)
+            ggplot2::xlab(xlab) +
+            ggplot2::ylab(ylab)
     }
 }
